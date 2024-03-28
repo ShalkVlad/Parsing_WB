@@ -77,12 +77,12 @@ async def first_feedback(driver):
 
 
 # Функция для обработки отзывов о товаре
-async def process_feedback(bot, chat_id, feedback, sku):
+async def process_feedback(bot, chat_id, feedback, sku, product_name):
     try:
         for review in feedback:
             if 1 <= review['rating'] <= 4:
                 if review['text'] not in processed_reviews.get(sku, []):
-                    message = f"Негативный отзыв/{sku}/{review['rating']} звезд/{review['text']}"
+                    message = f"Негативный отзыв/{product_name}/{sku}/{review['rating']} звезд/{review['text']}"
                     await notification(bot, chat_id, message)
                     logging.info(f"Новый негативный отзыв о товаре {sku} обработан")
                     # Добавляем отзыв в processed_reviews
@@ -112,10 +112,13 @@ async def get_reviews(bot, chat_id, url, sku):
 
         feedback_data, current_rating = await first_feedback(driver)
         if feedback_data:
-            message = f"Негативный отзыв/{sku}/{feedback_data['rating']} звезд/{feedback_data['text']}"
+            product_name_tag = driver.find_element_by_css_selector('h1.name')
+            product_name = product_name_tag.text.strip() if product_name_tag else None
+            message = f"Негативный отзыв/{product_name}/{sku}/{feedback_data['rating']} звезд/{feedback_data['text']}"
             message += f"\nТекущий рейтинг товара: {current_rating}"
             await notification(bot, chat_id, message)
             logging.info(f"Негативный отзыв о товаре {sku} найден")
+            await process_feedback(bot, chat_id, [feedback_data], sku, product_name)
         else:
             print("Отзывы отсутствуют")
 
